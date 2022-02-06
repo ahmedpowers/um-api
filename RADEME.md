@@ -1,4 +1,4 @@
-Uinerval Music coding task
+Universal Music coding task
 
 You can preview the site here https://um-api.myshopify.com/ and the password is ampart
 
