@@ -1,0 +1,90 @@
+{{ 'video-section.css' | asset_url | stylesheet_tag }}
+{{ 'component-deferred-media.css' | asset_url | stylesheet_tag }}
+
+{%- style -%}
+  .section-{{ section.id }}-padding {
+    padding-top: {{ section.settings.padding_top | times: 0.75 | round: 0 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px;
+  }
+  .video_container{
+    display: flex;
+    width: 100%;
+    gap: 15px;
+    flex-direction: column;
+  }
+  .video_item {
+    width: 100%;
+  }
+
+
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+    .video_container{
+      flex-direction: row;
+    }
+  
+  }
+{%- endstyle -%}
+
+<div class="page-width">
+  <div class="video-section isolate section-{{ section.id }}-padding">
+    <div>
+      {% unless section.settings.heading == "" %}
+        <div class="title-wrapper title-wrapper--no-top-margin">
+          <h2 class="title">{{ section.settings.heading }}</h2>
+        </div>
+      {% endunless %}
+    </div>
+    <div class="video_container">
+      {%- for block in section.blocks -%}
+      <div class="video-section__media video_item">
+        {%- if block.settings.video_url.type == 'youtube' -%}
+          <iframe src="https://www.youtube.com/embed/{{ block.settings.video_url.id }}?enablejsapi=1" class="js-youtube" allow="autoplay; encrypted-media" allowfullscreen title="Video"></iframe>
+        {%- endif -%}
+      </div>
+
+
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.video.name",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "default": "Video",
+      "label": "t:sections.video.settings.heading.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "videos",
+      "name": "Youtube Videos",
+      "settings": [
+        {
+          "type": "video_url",
+          "id": "video_url",
+          "accept": [
+          "youtube"
+        ],
+          "label": "t:sections.video.settings.video_url.label"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Three YouTube Videos"
+    }
+  ]
+}
+  {% endschema %}

@@ -1,0 +1,175 @@
+{%- style -%}
+  spotify-api {
+    display: block;
+  }
+
+  .albums {
+    display: flex;
+    gap: 15px;
+  }
+
+  .albumImages {
+    width: 100%;
+  }
+
+  .albums_container {
+    padding: 30px 0;
+  }
+
+{%- endstyle -%}
+
+<spotify-api class="albums_container page-width">
+  <div class="number_albums">
+    <button class="show_two" data-number-of-albums="2">
+      Show 2
+    </button>
+    <button class="show_four" data-number-of-albums="4">
+      Show 4
+    </button>
+  </div>
+  <div class="albums">
+  
+  </div>
+  <button id="previous_button"> previous </button>
+  <button id="next_button"> next </button>
+</spotify-api>
+
+{% javascript %}
+
+class SpotifyAPI extends HTMLElement {
+  constructor() {
+    super();
+
+    // set some variables 
+    this.clientId = '78842158e4464bb2a106e7c6afc970e3';
+    this.clientSecret = 'a17fea22088c44379fe0dee6f6511d20';
+
+    this.selectors = {
+      nextButton: '#next_button',
+      previousButton: '#previous_button',
+      showTwo: '.show_two',
+      showFour: '.show_four',
+      numberOfAlbums: 'data-number-of-albums',
+      albums: '.albums'
+    }
+    this.offsets = 0;
+    this.limits = 2;
+
+    // initalise app
+    this.init();
+  }
+
+  // get the acess token to use for our endpoints (OAuth)
+  async getToken() {
+
+    const result = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+          'Content-Type' : 'application/x-www-form-urlencoded', 
+          'Authorization' : 'Basic ' + btoa(this.clientId + ':' + this.clientSecret)
+      },
+      body: 'grant_type=client_credentials'
+    });
+
+    const data = await result.json();
+    return data.access_token;
+  }
+
+  // get a list of 50 cent albums
+  async getFiftyCentAlbums(token, limit=2) {
+
+    const result = await fetch(`https://api.spotify.com/v1/artists/3q7HBObVc0L8jNeTe5Gofh/albums?album_type=album&market=GB&offset=${this.offsets}&limit=${limit}`, {
+      method: 'GET',
+      headers: { 'Authorization' : 'Bearer ' + token}
+    });
+
+    const data = await result.json();
+    console.log(data)
+    return data;
+
+  }
+
+  // Update the DOM with content from API
+  async updateDOM(albums) {
+
+    this.querySelector(this.selectors.albums).innerHTML = ''
+    albums.items.forEach(album => {
+      const divAlbum = document.createElement('div');
+      divAlbum.innerHTML = `<img class="albumImages" src="${album.images[0].url}"/> <h3>${album.name}</h3>`;
+      this.querySelector(this.selectors.albums).appendChild(divAlbum);
+    }); 
+    await this.enableDisableButtons(albums)
+
+  }
+
+  async enableDisableButtons(albums) {
+
+    if(albums.previous === null ){
+      this.querySelector(this.selectors.previousButton).disabled = true;
+    } else this.querySelector(this.selectors.previousButton).disabled = false;
+
+    if(albums.next === null ){
+      this.querySelector(this.selectors.nextButton).disabled = true;
+    } else this.querySelector(this.selectors.nextButton).disabled = false;
+
+  }
+
+  async loadAlbums(token, limit) {
+    let albums = await this.getFiftyCentAlbums(token, limit);
+    await this.updateDOM(albums)
+  }
+
+  async loadNextAlbums(token) {
+    this.offsets = this.offsets + this.limits;
+    let albums = await this.getFiftyCentAlbums(token, this.limits);
+    await this.updateDOM(albums)
+  }
+
+  async loadPreviousAlbums(token) {
+    // stop negative numbers
+    this.offsets = Math.max(0, this.offsets - this.limits);
+    let albums = await this.getFiftyCentAlbums(token, this.limits);
+    await this.updateDOM(albums)
+  }
+
+  async init() {
+
+    const token = await this.getToken();
+    await this.loadAlbums(token) 
+
+    const next = this.querySelector(this.selectors.nextButton);
+    const previous = this.querySelector(this.selectors.previousButton);
+
+    next.addEventListener('click', () => this.loadNextAlbums(token))
+    previous.addEventListener('click', () => this.loadPreviousAlbums(token))
+
+    this.querySelector(this.selectors.showTwo).addEventListener('click', () =>{
+      this.limits = parseInt(this.querySelector(this.selectors.showTwo).getAttribute(this.selectors.numberOfAlbums));
+      return this.loadAlbums(token, this.limits) 
+    });
+
+    this.querySelector(this.selectors.showFour).addEventListener('click', () =>{
+      this.limits =  parseInt(this.querySelector(this.selectors.showFour).getAttribute(this.selectors.numberOfAlbums));
+      return this.loadAlbums(token, this.limits) 
+    });
+  }
+}
+
+customElements.define('spotify-api', SpotifyAPI);
+
+{% endjavascript %}
+
+{% schema %}
+
+{
+  "name": "Spotify API",
+  "tag": "section",
+  "class": "section",
+  "presets": [
+    {
+      "name": "Spotify API"
+    }
+  ]
+}
+
+{% endschema %}
